@@ -1,0 +1,55 @@
+{
+  "version": "v1",
+  "purpose": "Truncation-viselkedés tesztelése valódi hosszú cikkeken",
+  "sources": {
+    "bbc-news": {
+      "dataset": "SetFit/bbc-news",
+      "split": "test",
+      "min_tokens": 400,
+      "samples_per_category": 3,
+      "categories_used": [
+        "sport",
+        "business",
+        "politics",
+        "tech"
+      ],
+      "category_mapping": {
+        "sport": "sports",
+        "business": "business",
+        "politics": "politics",
+        "tech": "science and technology"
+      }
+    },
+    "manual": {
+      "purpose": "Health kategória — BBC News-ban és AG News-ban nincs",
+      "count": 4,
+      "topics": [
+        "cardiovascular health, diet",
+        "antibiotic resistance, public health",
+        "cancer immunotherapy, mRNA vaccines",
+        "adolescent mental health, social media"
+      ]
+    }
+  },
+  "tokenizer_model": "facebook/bart-large-mnli",
+  "random_seed": 42,
+  "total_rows": 16,
+  "label_distribution": {
+    "sports": 3,
+    "business": 3,
+    "politics": 3,
+    "science and technology": 3,
+    "health": 4
+  },
+  "source_distribution": {
+    "bbc-news": 12,
+    "manual": 4
+  },
+  "token_stats": {
+    "min": 212,
+    "max": 1075,
+    "mean": 510.8125,
+    "above_1024": 1
+  },
+  "build_script": "scripts/build_long_articles_eval.py"
+}
