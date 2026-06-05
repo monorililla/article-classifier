@@ -1,0 +1,42 @@
+{
+  "version": "v1",
+  "source_dataset": "ag_news",
+  "source_split": "test",
+  "tokenizer_model": "facebook/bart-large-mnli",
+  "random_seed": 42,
+  "length_bins": {
+    "short": [
+      0,
+      40
+    ],
+    "medium": [
+      40,
+      70
+    ],
+    "long": [
+      70,
+      9999
+    ]
+  },
+  "samples_per_cell": 8,
+  "random_padding": 4,
+  "total_rows": 100,
+  "label_distribution": {
+    "World": 24,
+    "Sports": 25,
+    "Business": 24,
+    "Sci/Tech": 27
+  },
+  "bin_distribution": {
+    "short": 34,
+    "medium": 34,
+    "long": 32
+  },
+  "token_stats": {
+    "min": 23,
+    "max": 132,
+    "mean": 59.77,
+    "median": 53.0
+  },
+  "build_script": "scripts/build_ag_news_eval.py"
+}
