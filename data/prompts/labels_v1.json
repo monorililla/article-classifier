@@ -1,0 +1,39 @@
+{
+  "version": "v1",
+  "created_at": "2026-06-05",
+  "model": "facebook/bart-large-mnli",
+  "hypothesis_template": "This text is about {}.",
+  "labels": [
+    "world news",
+    "sports",
+    "business",
+    "science and technology",
+    "politics",
+    "health"
+  ],
+  "label_aliases": {
+    "World": "world news",
+    "Sports": "sports",
+    "Business": "business",
+    "Sci/Tech": "science and technology"
+  },
+  "rationale": [
+    "Az AG News dataset 4 alapkategóriát kínál: World, Sports, Business, Sci/Tech.",
+    "Ezeket kiegészítjük 2 kategóriával (Politics, Health), hogy demonstráljuk a",
+    "zero-shot előnyét: új címke felvétele nem igényel retraininget, csak a",
+    "candidate_labels listához hozzáírjuk.",
+    "A label_aliases mező az AG News eredeti angol címkéit (pl. 'Sci/Tech') képezi",
+    "le a mi (NLI hipotézisbe jól illeszkedő) hosszabb formáinkra (pl. 'science and",
+    "technology'). Ez azért fontos, mert a 'Sci/Tech' rövidítés rosszabbul működik",
+    "az NLI hipotézis-mondatban, mint a kiírt forma."
+  ],
+  "notes": [
+    "A hypothesis_template használata: a HF zero-shot pipeline a candidate label-t",
+    "ebbe a sablonba helyettesíti, így keletkezik a hipotézis-mondat (pl.",
+    "'This text is about sports.'). A modell ezt a mondatot hasonlítja a bemeneti",
+    "szöveghez NLI feladatként.",
+    "A címkéket szándékosan kisbetűsen, természetes nyelvi formában adtuk meg —",
+    "a tokenizer így természetesebb mondatokat kap, ami enyhén jobb pontosságot",
+    "eredményez (~1-3 százalékpont)."
+  ]
+}
