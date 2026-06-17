@@ -30,6 +30,7 @@ from src.drift import assess_drift, load_baseline
 from src.monitoring import MetricsCollector, PredictionRecord
 from src.pipeline import ArticleClassifier
 from src.prediction_logger import PredictionLogger
+from src.quality import assess_input_quality
 from src.schemas import (
     ClassifyRequest,
     ClassificationResult,
@@ -185,6 +186,17 @@ def classify(
     csonkolja és a válaszban `truncated=true` jelzi.
     """
     request_id = payload.request_id or str(uuid.uuid4())
+
+    # Adatminőség-ellenőrzés a request feldolgozása előtt — ezek warning-ok,
+    # nem fatal hibák. A pipeline továbbra is lefut, de a logban megjelennek.
+    for issue in assess_input_quality(payload.text):
+        prediction_logger.log_data_quality_warning(
+            request_id=request_id,
+            issue=issue.issue,
+            details=issue.details,
+        )
+        logger.info("Data quality warning (request_id=%s): %s",
+                     request_id, issue.issue)
 
     try:
         result = classifier.classify(
