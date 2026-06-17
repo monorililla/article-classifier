@@ -1,0 +1,42 @@
+# Build-context kizárások — nem kerülnek a Docker daemon-hoz a build során.
+# Ez nem kódhozzáférési védelem, csak gyorsítás és image-méret-csökkentés.
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# Git, IDE
+.git/
+.gitignore
+.vscode/
+.idea/
+.DS_Store
+
+# Notebook + jegyzetek
+notebook/
+*.ipynb_checkpoints/
+
+# Tesztek
+tests/
+
+# Dataset-build szkriptek (a runtime image-be sem kellenek)
+scripts/
+
+# Dokumentáció (a Docker image-nek nem kell)
+docs/
+README.md
+
+# Helyi futási adatok
+logs/
+data/eval/
+data/cache/
+hf_cache/
+
+# Egyéb
+*.log
+.env
+.env.local
