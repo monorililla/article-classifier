@@ -1,121 +1,135 @@
-# Article Classifier — Zero-Shot News Categorization Pipeline
+# Article Classifier
 
-[![Python](https://img.shields.io/badge/python-3.11%2B-blue)]()
-[![License](https://img.shields.io/badge/license-MIT-green)]()
-[![Status](https://img.shields.io/badge/status-WIP-orange)]()
+Zero-shot angol nyelvű hírcikk-osztályozó REST API a HuggingFace
+`facebook/bart-large-mnli` modell köré építve. Címkézett training-adat
+nélkül kategorizál, új kategóriák felvétele konfigurációs változás.
 
-Egyetemi beadandó projekt: angol nyelvű hírek/cikkek automatikus kategorizálása
-**zero-shot szöveg-osztályozással** a HuggingFace `facebook/bart-large-mnli` modell
-segítségével. Nem igényel címkézett training adatot, új kategória hozzáadása
-csak konfiguráció-módosítás.
+## Funkciók
 
-## ✨ Főbb jellemzők
+- REST API (FastAPI) — `/classify`, `/health`, `/version`, `/metrics`,
+  `/metrics/drift`
+- Strukturált JSON Lines logging (PII-mentes, hash-elt input)
+- In-memory metrika-gyűjtő sliding window-nal
+- Drift detection KL-divergencia és per-label share alapján
+- Bemeneti adatminőség-ellenőrzés (rövid input, nem-angol, HTML)
+- Truncation kezelés a 1024-token limit fölött
+- Multi-stage Docker build, modell pre-downloadolva
+- 30 pytest teszt (tesztek a pipeline-ra, API-ra, logger-re, drift-re,
+  quality-re)
 
-- 🤖 **Zero-shot classification** — nincs szükség saját training datasetre
-- 🚀 **REST API** FastAPI-val, OpenAPI/Swagger dokumentációval
-- 🐳 **Konténerizált** — egy parancs az indításhoz (`docker compose up`)
-- 📓 **Futtatható Jupyter notebook** a végponttól végpontig demóval
-- 📊 **Beépített monitoring** — strukturált loggolás, latency / confidence metrikák, drift detection
-- 🔖 **Verziózott** — kód, modell, címkék és eval-dataset is
+## Gyors start
 
-## 📋 Tartalomjegyzék
-
-- [Architektúra](docs/architecture.md)
-- [Adathalmaz dokumentáció](docs/dataset.md)
-- [Monitoring és KPI-ok](docs/monitoring.md)
-- [Verziózási stratégia](docs/versioning.md)
-- [API referencia](docs/api.md)
-
-## 🚀 Gyors start
-
-### Helyi futtatás (fejlesztéshez)
+### Helyi futtatás
 
 ```bash
-# 1. Klón
 git clone https://github.com/monorililla/article-classifier.git
 cd article-classifier
 
-# 2. Virtuális környezet
 python3 -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-
-# 3. Függőségek
+source .venv/bin/activate
 pip install -r requirements.txt
 
-# 4. Notebook indítása
-jupyter lab notebook/exploration.ipynb
+uvicorn src.api:app --reload
 ```
 
-### Docker (produktív futtatás)
+A modell betöltése Apple Silicon-on (MPS) ~5 másodperc, predikció ~250 ms.
+
+### Docker
 
 ```bash
-docker compose up --build
-# API elérhető: http://localhost:8000
-# Swagger UI:   http://localhost:8000/docs
+docker compose up
 ```
 
-### Példa API-hívás
+Az API a `http://localhost:8000`-en érhető el. CPU-only Linux konténerben
+a latency nagyobb (1100-1700 ms predikciónként).
+
+### Példa request
 
 ```bash
 curl -X POST http://localhost:8000/classify \
   -H "Content-Type: application/json" \
-  -d '{
-    "text": "Apple unveiled its new M5 chip today, claiming a 40% performance boost.",
-    "labels": ["technology", "sports", "politics", "business"]
-  }'
+  -d '{"text": "Apple unveiled the new M5 chip today."}'
 ```
 
 Válasz:
 ```json
 {
-  "predicted_label": "technology",
-  "confidence": 0.94,
-  "all_scores": {
-    "technology": 0.94,
-    "business": 0.04,
-    "politics": 0.01,
-    "sports": 0.01
-  },
+  "predicted_label": "science and technology",
+  "confidence": 0.31,
+  "all_scores": {...},
+  "truncated": false,
+  "input_token_count": 8,
   "model_version": "facebook/bart-large-mnli",
-  "request_id": "..."
+  "labels_version": "v1",
+  "code_version": "0.2.0",
+  "latency_ms": 1091.9,
+  "timestamp": "2026-06-17T16:39:35.857Z",
+  "request_id": "d5356e09-..."
 }
 ```
 
-## 🏗️ Mappastruktúra
+## Interaktív API dokumentáció
+
+Futás közben:
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+## Dokumentáció
+
+| Doksi | Mit tartalmaz |
+|---|---|
+| [architecture.md](docs/architecture.md) | Projekt áttekintés, NLI-trükk, komponens-struktúra, deployment-modellek |
+| [dataset.md](docs/dataset.md) | MultiNLI training-adat, AG News eval, long-articles set, label-set |
+| [monitoring.md](docs/monitoring.md) | KPI-ok, drift-küszöbök, retraining flow, dashboard mockup |
+| [versioning.md](docs/versioning.md) | Mit hogyan verziózunk: kód, modell, prompt, eval data |
+| [api.md](docs/api.md) | Endpoint-ok részletes referenciája, példa-request-ek |
+
+## Repo-struktúra
 
 ```
 article-classifier/
-├── docs/         # Részletes dokumentáció (architektúra, monitoring, ...)
-├── notebook/     # Futtatható Jupyter notebook
-├── data/         # Eval dataset és címke-konfigurációk (verziózva)
-├── src/          # Forráskód: pipeline, API, monitoring
-├── tests/        # Unit és integrációs tesztek
-├── logs/         # Runtime monitoring logok (gitignore-olva)
-├── Dockerfile
-├── docker-compose.yml
-└── requirements.txt
+├── src/                  Forráskód (api, pipeline, monitoring, drift, quality)
+├── tests/                Pytest tesztek
+├── data/
+│   ├── prompts/          Verziózott label-set-ek
+│   ├── eval/             Verziózott eval CSV-k és meta-fájlok
+│   └── baseline/         Drift-detection referencia
+├── notebook/             Jupyter notebook-ok (exploration, evaluation)
+├── scripts/              Reprodukálható dataset-építők
+├── docs/                 Részletes dokumentáció
+├── logs/                 Runtime predikciós logok (JSON Lines)
+├── Dockerfile            Multi-stage build
+├── docker-compose.yml    Egy-paranccsal indítás
+└── requirements.txt      Pinneolt függőségek
 ```
 
-## 🧪 Tesztek futtatása
+## Tesztek
 
 ```bash
-pytest tests/ -v
+pytest
 ```
 
-## 📚 Háttér
+A pipeline-tesztek a tényleges modellt töltik (~10 mp a teljes futás).
+Az API-, logger-, drift- és quality-tesztek modell-mentesek (mock
+classifierrel), <1 mp alatt lefutnak.
 
-A modell a [MultiNLI](https://huggingface.co/datasets/nyu-mll/multi_nli)
-adathalmazon (~412k mondatpár) lett tanítva NLI feladatra.
-Részletes magyarázat a zero-shot megközelítésről:
-[docs/architecture.md](docs/architecture.md).
+## Notebook-ok
 
-## 📝 Licenc
+Két Jupyter notebook a `notebook/` mappában:
 
-MIT — szabadon használható oktatási és kutatási célra.
+- `exploration.ipynb` — felfedező notebook: a HF zero-shot pipeline
+  alapfunkcionalitása, truncation viselkedés-tesztelés.
+- `evaluation.ipynb` — kiértékelés mindkét eval-seten (AG News + long-articles),
+  per-class F1, confusion matrix, per-hossz-bin metrikák, baseline-számokhoz
+  vezető teljes futtatás.
 
----
+A notebook futtatása:
+```bash
+source .venv/bin/activate
+python -m ipykernel install --user --name=article-classifier
+jupyter lab notebook/evaluation.ipynb
+```
 
-**Készítette:** Mónor Lilla
-**Egyetem:** Corvinus Egyetem
-**Tárgy:** [tárgynév]
-**Év:** 2026
+## Licenc
+
+MIT (oktatási és kutatási célra).
