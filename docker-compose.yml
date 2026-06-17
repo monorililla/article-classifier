@@ -8,8 +8,7 @@ services:
     ports:
       - "8000:8000"
     # A logs mappát kívülről mountoljuk, így a konténer leállítása után
-    # is megmaradnak a runtime logok (a 4. napon írunk struktúrált
-    # logot, ezt fogjuk ide szórni).
+    # is megmaradnak a runtime logok (struktúrált request-loggoláshoz).
     volumes:
       - ./logs:/app/logs
     environment:

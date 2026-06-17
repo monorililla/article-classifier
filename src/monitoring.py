@@ -1,6 +1,6 @@
 """Egyszerű in-memory metrika-gyűjtő a /metrics endpoint-hoz.
 
-A 4. napon érkező drift-detection alapja: a memóriában tartott legutóbbi
+A drift-detection alapja: a memóriában tartott legutóbbi
 N predikció statisztikáit aggregáljuk és tesszük elérhetővé HTTP-n
 keresztül. Pythonon belül, lock-mentesen működik (a Pythonnak van GIL,
 és a műveletek atomiak listák/dict-ek esetén); ha többszálú lenne,

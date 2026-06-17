@@ -1,7 +1,7 @@
 """Article Classifier — production-grade wrapper a HF zero-shot pipeline körül.
 
-Ez a modul az alapja a notebook-os kiértékelésnek és a 3. naptól érkező
-FastAPI endpoint-nak is. Egy importálható osztályt ad: ArticleClassifier.
+Ez a modul az alapja a notebook-os kiértékelésnek és a FastAPI
+endpoint-nak is. Egy importálható osztályt ad: ArticleClassifier.
 
 Felelősségi körök:
 - A HF zero-shot pipeline betöltése (modell, tokenizer)
