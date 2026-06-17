@@ -54,3 +54,37 @@ class HealthResponse(BaseModel):
     model_loaded: bool
     code_version: str
     labels_version: str
+
+
+class VersionResponse(BaseModel):
+    """API: /version endpoint válasza — a futó komponensek azonosítói."""
+
+    code_version: str
+    model_name: str
+    labels_version: str
+    labels: list[str]
+    device: str
+    model_max_tokens: int
+    truncation_token_budget: int
+
+
+class MetricsResponse(BaseModel):
+    """API: /metrics endpoint válasza — szabad-formájú dict.
+
+    Pydantic-os tipizálást szándékosan kerüljük (a struktúra
+    bővülni fog, és a dict típus elég flexibilis).
+    """
+
+    uptime_seconds: float
+    total_requests: int
+    total_errors: int
+    recent_window_size: int
+    predictions: Optional[dict] = None
+
+
+class ErrorResponse(BaseModel):
+    """API: hibaüzenet egységes formában."""
+
+    error: str
+    detail: Optional[str] = None
+    request_id: Optional[str] = None
