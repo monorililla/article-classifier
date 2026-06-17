@@ -26,6 +26,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from src.config import CODE_VERSION
+from src.drift import assess_drift, load_baseline
 from src.monitoring import MetricsCollector, PredictionRecord
 from src.pipeline import ArticleClassifier
 from src.prediction_logger import PredictionLogger
@@ -132,6 +133,34 @@ def metrics(
     """
     snapshot = metrics_collector.snapshot()
     return MetricsResponse(**snapshot)
+
+
+@app.get("/metrics/drift", tags=["status"])
+def drift(
+    metrics_collector: MetricsCollector = Depends(get_metrics),
+) -> dict:
+    """Drift-státusz a baseline_v1.json és a recent /metrics összevetéséből.
+
+    A státusz négy szintű:
+    - 'insufficient_data': még nincs elég predikció (< 20)
+    - 'ok': minden mért érték a küszöbök alatt
+    - 'warning': legalább egy érték a warning küszöb felett
+    - 'alert': legalább egy érték az alert küszöb felett
+
+    A teljes részletezést a 'reasons' és a 'measurements' mező adja.
+    """
+    snapshot = metrics_collector.snapshot()
+    try:
+        baseline = load_baseline()
+    except FileNotFoundError:
+        return {
+            "status": "baseline_missing",
+            "reasons": [
+                "data/baseline/baseline_v1.json nem található. "
+                "Drift-mérés ezen a környezeten nem aktiválható."
+            ],
+        }
+    return assess_drift(snapshot, baseline=baseline)
 
 
 @app.post(

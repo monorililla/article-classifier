@@ -54,6 +54,7 @@ WORKDIR /app
 # Csak a futtatáshoz szükséges fájlok — a tests/, scripts/, notebook/ kimarad
 COPY --chown=appuser:appuser src/ ./src/
 COPY --chown=appuser:appuser data/prompts/ ./data/prompts/
+COPY --chown=appuser:appuser data/baseline/ ./data/baseline/
 
 USER appuser
 
