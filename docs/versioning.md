@@ -74,15 +74,43 @@ git push
 
 ### Tag-ek (mérföldkövek)
 
-A tag-eket nem minden commitra adunk, hanem tényleges deployolt
-mérföldkövekre. Az aktuális tag-történet:
+A `main` branch tényleges fejlesztési mérföldkövei a feature-merge-eken
+keresztül követhetők. A `git log --merges --oneline main` ezt mutatja:
 
-- `v1.0.0` — a teljes csomag (pipeline, REST API, Docker, monitoring,
-  drift detection, dokumentáció). Az első deployolható release.
+| Mérföldkő | Commit | Funkcionális tartalom |
+|---|---|---|
+| **0.1 — Pipeline + eval** | `e4023bd` | A `feature/dataset-and-pipeline` merge: `ArticleClassifier` wrapper, AG News stratifikált eval (100 sor), long-articles eval (16 sor), `labels_v1.json`, `notebook/evaluation.ipynb` futtatott baseline-mérés (55% AG News, 62.5% long). |
+| **0.2 — REST API + Docker** | `5fbc55f` | A `feature/api-and-docker` merge: FastAPI endpoint-ok (`/classify`, `/health`, `/version`, `/metrics`), in-memory `MetricsCollector`, multi-stage Dockerfile, healthcheck, 16 pytest teszt. |
+| **0.3 — Monitoring + doksi** | `8403491` | A `feature/monitoring-and-docs` merge: strukturált JSON Lines logger (PII-mentes), drift detection (`/metrics/drift`), input quality validáció, 5 részletes doksi a `docs/` mappában. |
+| **1.0.0** (Git tag) | `7e40a3b` | Verzió-szinkron: `CODE_VERSION` 0.2.0 → 1.0.0, doksi-példák update, az első tag-elt deployolható release. |
 
-A `CODE_VERSION` a `src/config.py`-ban szinkronban van a tag-ekkel
-(SemVer: MAJOR.MINOR.PATCH). Új feature → MINOR bump, breaking change
-(pl. `/classify` válasz-séma változás) → MAJOR bump.
+A részletes commit-szintű történet:
+
+```bash
+git log --oneline main
+```
+
+A négy mérföldkő egyetlen `git log` paranccsal vizualizálható:
+
+```bash
+git log --graph --oneline --decorate main
+```
+
+Új feature → MINOR bump (`v1.1.0`), breaking change (pl. `/classify`
+válasz-séma változás) → MAJOR bump (`v2.0.0`), bugfix → PATCH bump
+(`v1.0.1`). A `CODE_VERSION` a `src/config.py`-ban a következő tag-gel
+egyszerre frissítendő.
+
+### Mit verziózunk vs. mit nem
+
+| Verziózott | Nem verziózott (de újragenerálható) |
+|---|---|
+| Forráskód (Git) | `.venv/` (helyi virtualenv) |
+| `requirements.txt` (pinned) | `~/.cache/huggingface/` (modell cache) |
+| `data/prompts/labels_v*.json` | `logs/predictions.jsonl` (runtime log) |
+| `data/eval/*_v*.csv` | Docker image (lokális build artifakt) |
+| `data/baseline/baseline_v*.json` | |
+| Notebook `.ipynb` (futtatott eredménnyel) | |
 
 ## Modell-verziózás
 
