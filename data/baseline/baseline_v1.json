@@ -1,0 +1,40 @@
+{
+  "version": "v1",
+  "source": "notebook/evaluation.ipynb on AG News stratifikált eval set (100 sor)",
+  "measured_at": "2026-06-05",
+  "model": "facebook/bart-large-mnli",
+  "labels_version": "v1",
+  "code_version": "0.2.0",
+  "label_distribution": {
+    "sports": 0.20,
+    "business": 0.46,
+    "world news": 0.19,
+    "science and technology": 0.04,
+    "politics": 0.10,
+    "health": 0.01
+  },
+  "confidence": {
+    "mean": 0.61,
+    "min_acceptable_mean": 0.50
+  },
+  "latency_ms": {
+    "p50_baseline": 220,
+    "p95_baseline": 460,
+    "p95_alert_threshold": 700
+  },
+  "drift_thresholds": {
+    "kl_divergence_warning": 0.15,
+    "kl_divergence_alert": 0.30,
+    "label_share_drift_warning": 0.10,
+    "label_share_drift_alert": 0.20
+  },
+  "rationale": [
+    "A label_distribution a baseline-eval predikciós eloszlásából származik.",
+    "A confidence.mean a baseline futtatás átlagos confidence-e — élesben",
+    "ha a sliding window átlaga ez alá süllyed, a modell egyre bizonytalanabb.",
+    "A drift_thresholds értékek pragmatikus default-ok: KL-divergencia",
+    "0.15 alatt ~zaj, 0.30 felett már jelentős eloszlás-eltolódás.",
+    "A label_share_drift egy egyszerűbb, szabad-szemmel is olvasható",
+    "metrika: bármely címke részaránya ennyi százalékponttal eltérhet."
+  ]
+}

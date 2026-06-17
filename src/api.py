@@ -19,14 +19,18 @@ from __future__ import annotations
 import logging
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from src.config import CODE_VERSION
+from src.drift import assess_drift, load_baseline
 from src.monitoring import MetricsCollector, PredictionRecord
 from src.pipeline import ArticleClassifier
+from src.prediction_logger import PredictionLogger
+from src.quality import assess_input_quality
 from src.schemas import (
     ClassifyRequest,
     ClassificationResult,
@@ -51,9 +55,13 @@ async def lifespan(app: FastAPI):
     logger.info("Alkalmazás indul — ArticleClassifier inicializálása...")
     app.state.classifier = ArticleClassifier()
     app.state.metrics = MetricsCollector(capacity=1000)
+    app.state.prediction_logger = PredictionLogger(
+        log_path=Path("logs/predictions.jsonl")
+    )
     logger.info("Inicializálás kész.")
     yield
     logger.info("Alkalmazás leáll.")
+    app.state.prediction_logger.close()
 
 
 app = FastAPI(
@@ -75,6 +83,10 @@ def get_classifier(request: Request) -> ArticleClassifier:
 
 def get_metrics(request: Request) -> MetricsCollector:
     return request.app.state.metrics
+
+
+def get_prediction_logger(request: Request) -> PredictionLogger:
+    return request.app.state.prediction_logger
 
 
 # --- Endpoint-ok ---
@@ -124,6 +136,34 @@ def metrics(
     return MetricsResponse(**snapshot)
 
 
+@app.get("/metrics/drift", tags=["status"])
+def drift(
+    metrics_collector: MetricsCollector = Depends(get_metrics),
+) -> dict:
+    """Drift-státusz a baseline_v1.json és a recent /metrics összevetéséből.
+
+    A státusz négy szintű:
+    - 'insufficient_data': még nincs elég predikció (< 20)
+    - 'ok': minden mért érték a küszöbök alatt
+    - 'warning': legalább egy érték a warning küszöb felett
+    - 'alert': legalább egy érték az alert küszöb felett
+
+    A teljes részletezést a 'reasons' és a 'measurements' mező adja.
+    """
+    snapshot = metrics_collector.snapshot()
+    try:
+        baseline = load_baseline()
+    except FileNotFoundError:
+        return {
+            "status": "baseline_missing",
+            "reasons": [
+                "data/baseline/baseline_v1.json nem található. "
+                "Drift-mérés ezen a környezeten nem aktiválható."
+            ],
+        }
+    return assess_drift(snapshot, baseline=baseline)
+
+
 @app.post(
     "/classify",
     response_model=ClassificationResult,
@@ -137,6 +177,7 @@ def classify(
     payload: ClassifyRequest,
     classifier: ArticleClassifier = Depends(get_classifier),
     metrics_collector: MetricsCollector = Depends(get_metrics),
+    prediction_logger: PredictionLogger = Depends(get_prediction_logger),
 ) -> ClassificationResult:
     """Egy cikk osztályozása zero-shot megközelítéssel.
 
@@ -146,6 +187,17 @@ def classify(
     """
     request_id = payload.request_id or str(uuid.uuid4())
 
+    # Adatminőség-ellenőrzés a request feldolgozása előtt — ezek warning-ok,
+    # nem fatal hibák. A pipeline továbbra is lefut, de a logban megjelennek.
+    for issue in assess_input_quality(payload.text):
+        prediction_logger.log_data_quality_warning(
+            request_id=request_id,
+            issue=issue.issue,
+            details=issue.details,
+        )
+        logger.info("Data quality warning (request_id=%s): %s",
+                     request_id, issue.issue)
+
     try:
         result = classifier.classify(
             text=payload.text,
@@ -154,14 +206,25 @@ def classify(
         )
     except ValueError as e:
         metrics_collector.record_error()
+        prediction_logger.log_validation_error(
+            request_id=request_id,
+            error_type="ValueError",
+            message=str(e),
+            input_text=payload.text,
+        )
         logger.warning("Validation error (request_id=%s): %s", request_id, e)
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:  # pragma: no cover — generic safety net
         metrics_collector.record_error()
+        prediction_logger.log_validation_error(
+            request_id=request_id,
+            error_type=type(e).__name__,
+            message=str(e),
+        )
         logger.exception("Unexpected error (request_id=%s)", request_id)
         raise HTTPException(status_code=500, detail=f"Internal error: {e}")
 
-    # Sikeres predikció rögzítése a metrikákba
+    # Sikeres predikció rögzítése a metrikákba és a struktúrált logba
     metrics_collector.record_prediction(
         PredictionRecord(
             timestamp=result.timestamp,
@@ -173,6 +236,7 @@ def classify(
             request_id=request_id,
         )
     )
+    prediction_logger.log_prediction(result=result, input_text=payload.text)
 
     return result
 
