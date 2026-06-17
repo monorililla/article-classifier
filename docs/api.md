@@ -47,7 +47,7 @@ Egy cikk osztályozása.
   "processed_token_count": 17,
   "model_version": "facebook/bart-large-mnli",
   "labels_version": "v1",
-  "code_version": "0.2.0",
+  "code_version": "1.0.0",
   "latency_ms": 1091.9,
   "timestamp": "2026-06-17T16:39:35.857Z",
   "request_id": "d5356e09-f480-4b94-a758-c30ed8ddf872"
@@ -99,7 +99,7 @@ Healthcheck. A Docker `HEALTHCHECK` directiva ezt használja.
 {
   "status": "ok",
   "model_loaded": true,
-  "code_version": "0.2.0",
+  "code_version": "1.0.0",
   "labels_version": "v1"
 }
 ```
@@ -117,7 +117,7 @@ A futó komponensek verzió-információi.
 **Válasz (200):**
 ```json
 {
-  "code_version": "0.2.0",
+  "code_version": "1.0.0",
   "model_name": "facebook/bart-large-mnli",
   "labels_version": "v1",
   "labels": [

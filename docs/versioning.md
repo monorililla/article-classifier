@@ -75,15 +75,14 @@ git push
 ### Tag-ek (mérföldkövek)
 
 A tag-eket nem minden commitra adunk, hanem tényleges deployolt
-mérföldkövekre. A jelenlegi tervezett tag-ek:
+mérföldkövekre. Az aktuális tag-történet:
 
-- `v0.1.0` — első működő pipeline (`feat(pipeline): ArticleClassifier wrapper`)
-- `v0.2.0` — REST API + Docker (`feat(api)`, `feat(docker)`)
-- `v0.3.0` — monitoring + drift detection
-- `v1.0.0` — leadásra kész teljes csomag (kód, doksi, tesztek)
+- `v1.0.0` — a teljes csomag (pipeline, REST API, Docker, monitoring,
+  drift detection, dokumentáció). Az első deployolható release.
 
 A `CODE_VERSION` a `src/config.py`-ban szinkronban van a tag-ekkel
-(SemVer: MAJOR.MINOR.PATCH).
+(SemVer: MAJOR.MINOR.PATCH). Új feature → MINOR bump, breaking change
+(pl. `/classify` válasz-séma változás) → MAJOR bump.
 
 ## Modell-verziózás
 

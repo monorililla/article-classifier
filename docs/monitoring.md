@@ -45,7 +45,7 @@ A rekord struktúrája:
   "version": {
     "model": "facebook/bart-large-mnli",
     "labels": "v1",
-    "code": "0.2.0"
+    "code": "1.0.0"
   }
 }
 ```

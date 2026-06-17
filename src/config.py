@@ -26,7 +26,8 @@ TRUNCATION_TOKEN_BUDGET = 900  # biztonsági ráhagyás
 
 # --- Kód verziója (semantic versioning) ---
 # Ez kerül a /version endpoint-ba és a strukturált logokba.
-CODE_VERSION = "0.2.0"  # 0.2 = a feature/dataset-and-pipeline branch fejlesztése
+# Szinkronban a Git tag-ekkel (MAJOR.MINOR.PATCH).
+CODE_VERSION = "1.0.0"
 
 # --- Confidence küszöbök (monitoringhoz) ---
 # Ha a confidence ez alatt van, "low confidence" warning-ot emelünk.

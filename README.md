@@ -61,7 +61,7 @@ Válasz:
   "input_token_count": 8,
   "model_version": "facebook/bart-large-mnli",
   "labels_version": "v1",
-  "code_version": "0.2.0",
+  "code_version": "1.0.0",
   "latency_ms": 1091.9,
   "timestamp": "2026-06-17T16:39:35.857Z",
   "request_id": "d5356e09-..."
