@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -27,6 +28,7 @@ from fastapi.responses import JSONResponse
 from src.config import CODE_VERSION
 from src.monitoring import MetricsCollector, PredictionRecord
 from src.pipeline import ArticleClassifier
+from src.prediction_logger import PredictionLogger
 from src.schemas import (
     ClassifyRequest,
     ClassificationResult,
@@ -51,9 +53,13 @@ async def lifespan(app: FastAPI):
     logger.info("Alkalmazás indul — ArticleClassifier inicializálása...")
     app.state.classifier = ArticleClassifier()
     app.state.metrics = MetricsCollector(capacity=1000)
+    app.state.prediction_logger = PredictionLogger(
+        log_path=Path("logs/predictions.jsonl")
+    )
     logger.info("Inicializálás kész.")
     yield
     logger.info("Alkalmazás leáll.")
+    app.state.prediction_logger.close()
 
 
 app = FastAPI(
@@ -75,6 +81,10 @@ def get_classifier(request: Request) -> ArticleClassifier:
 
 def get_metrics(request: Request) -> MetricsCollector:
     return request.app.state.metrics
+
+
+def get_prediction_logger(request: Request) -> PredictionLogger:
+    return request.app.state.prediction_logger
 
 
 # --- Endpoint-ok ---
@@ -137,6 +147,7 @@ def classify(
     payload: ClassifyRequest,
     classifier: ArticleClassifier = Depends(get_classifier),
     metrics_collector: MetricsCollector = Depends(get_metrics),
+    prediction_logger: PredictionLogger = Depends(get_prediction_logger),
 ) -> ClassificationResult:
     """Egy cikk osztályozása zero-shot megközelítéssel.
 
@@ -154,14 +165,25 @@ def classify(
         )
     except ValueError as e:
         metrics_collector.record_error()
+        prediction_logger.log_validation_error(
+            request_id=request_id,
+            error_type="ValueError",
+            message=str(e),
+            input_text=payload.text,
+        )
         logger.warning("Validation error (request_id=%s): %s", request_id, e)
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:  # pragma: no cover — generic safety net
         metrics_collector.record_error()
+        prediction_logger.log_validation_error(
+            request_id=request_id,
+            error_type=type(e).__name__,
+            message=str(e),
+        )
         logger.exception("Unexpected error (request_id=%s)", request_id)
         raise HTTPException(status_code=500, detail=f"Internal error: {e}")
 
-    # Sikeres predikció rögzítése a metrikákba
+    # Sikeres predikció rögzítése a metrikákba és a struktúrált logba
     metrics_collector.record_prediction(
         PredictionRecord(
             timestamp=result.timestamp,
@@ -173,6 +195,7 @@ def classify(
             request_id=request_id,
         )
     )
+    prediction_logger.log_prediction(result=result, input_text=payload.text)
 
     return result
 

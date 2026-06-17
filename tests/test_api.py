@@ -70,14 +70,20 @@ class MockClassifier:
 
 
 @pytest.fixture
-def client() -> TestClient:
+def client(tmp_path) -> TestClient:
     """TestClient mock classifierrel — nincs modell-betöltés."""
+    from src.prediction_logger import PredictionLogger
+
     mock = MockClassifier()
     metrics = MetricsCollector(capacity=100)
+
+    # PredictionLogger egy temp fájlba ír — a teszt után elhasználódik
+    pred_logger = PredictionLogger(log_path=tmp_path / "predictions.jsonl")
 
     # Az app.state-be tesszük (ahogy a lifespan tenné), és a Depends átveszi
     app.state.classifier = mock
     app.state.metrics = metrics
+    app.state.prediction_logger = pred_logger
 
     # A get_classifier override is megmarad biztonsági okból
     app.dependency_overrides[get_classifier] = lambda: mock
@@ -85,6 +91,7 @@ def client() -> TestClient:
     yield TestClient(app)
 
     app.dependency_overrides.clear()
+    pred_logger.close()
 
 
 def test_health_endpoint(client: TestClient) -> None:
